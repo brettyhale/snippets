@@ -50,7 +50,9 @@ public:
         return (u & result_max); }
 
     static constexpr auto rotl (result_type u, int k) {
-        return (clamp(u << k) | (clamp(u) >> ((- k) & 31))); }
+        u = clamp(u); // idiomatic rotate:
+        return clamp((u << (k & 31)) | (u >> ((- k) & 31)));
+    }
 
     // xoshiro128++ generator function:
 
@@ -72,10 +74,10 @@ public:
     constexpr void long_jump () noexcept;
 
 
-    // github.com/skeeto/hash-prospector : triple32inc
+    // github.com/skeeto/hash-prospector : triple32
 
     static constexpr auto mix (result_type u) {
-        u = clamp((u + 1));
+        u = clamp(u);
         u = clamp((u ^ (u >> 17)) * UINT32_C(0xed5ad4bb));
         u = clamp((u ^ (u >> 11)) * UINT32_C(0xac4c1b51));
         u = clamp((u ^ (u >> 15)) * UINT32_C(0x31848bab));
@@ -180,17 +182,18 @@ X128PP::init (std::random_device & rdev)
             auto lo = static_cast<result_type>(rdev());
             auto hi = static_cast<result_type>(rdev());
 
-            ri = mix((hi << (16)) | (lo & (0xffff)));
+            ri = clamp((hi << (16)) | (lo & (0xffff)));
         }
     }
     else
     {
         for (auto & ri : rbuf)
-            ri = mix(static_cast<result_type>(rdev()));
+            ri = clamp(static_cast<result_type>(rdev()));
     }
 
-    // note: in theory, it shouldn't be necessary to hash values
-    // generated using a std::random_device.
+    // note: it shouldn't be necessary to hash values generated
+    // using a conforming std::random_device - furthermore, hash
+    // functions are not bijective, excluding possible states.
 
     state = rbuf;
 }
