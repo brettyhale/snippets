@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// X128PP.hh : xoshiro128++ PRNG (uniform random bit generator)
+// X128PP.hh : xoshiro128++ (std::uniform_random_bit_generator)
 //
-// Copyright (c) 2022 Brett Hale.
+// Copyright (c) 2024 Brett Hale.
 // SPDX-License-Identifier: BSD-2-Clause
 //
 ////////////////////////////////////////////////////////////////////////////////
@@ -16,9 +16,6 @@
 #include <array>
 
 #include <random>
-#include <limits>
-
-static_assert(__cplusplus >= 201703L); // (C++17)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -49,19 +46,19 @@ public:
     static constexpr auto clamp (result_type u) {
         return (u & result_max); }
 
-    static constexpr auto rotl (result_type u, int k) {
-        u = clamp(u); // idiomatic rotate:
-        return clamp((u << (k & 31)) | (u >> ((- k) & 31)));
+    static constexpr auto rol (result_type u, unsigned k) {
+        u = clamp(u), k %= 32; // idiomatic rotate:
+        return (k) ? clamp((u << k) | (u >> (32 - k))) : (u);
     }
 
     // xoshiro128++ generator function:
 
     result_type operator () () noexcept {
-        auto r = rotl(state[0] + state[3], (7)) + state[0];
+        auto r = rol(state[0] + state[3], (7)) + state[0];
         auto t = clamp(state[1] << (9));
         state[2] ^= state[0], state[3] ^= state[1];
         state[1] ^= state[2], state[0] ^= state[3];
-        state[2] ^= t, state[3] = rotl(state[3], (11));
+        state[2] ^= t, state[3] = rol(state[3], (11));
         return clamp(r);
     }
 
@@ -84,21 +81,28 @@ public:
         return (u ^ (u >> 14));
     }
 
-    // (re)initialize the PRNG with a 32-bit seed:
+    // (re)initialize the PRNG with a 32 bit seed:
 
-    constexpr X128PP (result_type s = 0) noexcept
-        : state {} { seed(s); }
+    constexpr X128PP (result_type seed = 0) noexcept
+        : state {} { init(seed); }
 
-    constexpr void seed (result_type s) noexcept {
+    constexpr void init (result_type seed) noexcept {
         for (auto & si : state) // splitmix:
-            si = mix(s = clamp(s + UINT32_C(0x9e3779b9)));
+            si = mix(seed += UINT32_C(0x9e3779b9));
     }
 
-    // reinitialize the PRNG with a 128 bit state IV, generated
+    // (re)initialize the PRNG with a 128 bit state, generated
     // using a std::random_device:
 
-    void init (std::random_device &);
+    X128PP (std::random_device & rdev)
+        : state {} { init(rdev); }
 
+    void init (std::random_device & rdev) {
+        decltype(state) rbuf;
+        std::uniform_int_distribution<result_type> d {0, max()};
+        for (auto & ri : rbuf) ri = d(rdev);
+        state = rbuf;
+    }
 };
 
 
@@ -162,40 +166,6 @@ X128PP::long_jump () noexcept
     }
 
     state = jbuf;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// X128PP init function implementations:
-
-
-inline void
-X128PP::init (std::random_device & rdev)
-{
-    decltype(state) rbuf;
-
-    if (std::numeric_limits<decltype(rdev())>::digits < (32))
-    {
-        for (auto & ri : rbuf)
-        {
-            auto lo = static_cast<result_type>(rdev());
-            auto hi = static_cast<result_type>(rdev());
-
-            ri = clamp((hi << (16)) | (lo & (0xffff)));
-        }
-    }
-    else
-    {
-        for (auto & ri : rbuf)
-            ri = clamp(static_cast<result_type>(rdev()));
-    }
-
-    // note: it shouldn't be necessary to hash values generated
-    // using a conforming std::random_device - furthermore, hash
-    // functions are not bijective, excluding possible states.
-
-    state = rbuf;
 }
 
 
