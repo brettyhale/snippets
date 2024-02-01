@@ -62,11 +62,11 @@ public:
         return clamp(r);
     }
 
-    // equivalent to (2^64) calls to generator:
+    // equivalent to (2^64) generator function calls:
 
     constexpr void jump () noexcept;
 
-    // equivalent to (2^96) calls to generator:
+    // equivalent to (2^96) generator function calls:
 
     constexpr void long_jump () noexcept;
 
