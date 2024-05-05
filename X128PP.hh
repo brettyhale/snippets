@@ -41,14 +41,14 @@ public:
     static constexpr result_type max () { return result_max; }
 
 
-    std::array<result_type, 4> state; // (128 bits)
+    std::array<result_type, 4> state;
 
     static constexpr auto clamp (result_type u) {
         return (u & result_max); }
 
     static constexpr auto rol (result_type u, unsigned k) {
         u = clamp(u), k %= 32; // idiomatic rotate:
-        return (k) ? clamp((u << k) | (u >> (32 - k))) : (u);
+        return (k ? clamp((u << k) | (u >> (32 - k))) : (u));
     }
 
     // xoshiro128++ generator function:
@@ -111,15 +111,7 @@ public:
 // X128PP jump function implementations:
 
 
-constexpr auto
-jump (const X128PP & prng) noexcept
-{
-    auto jrng {prng}; jrng.jump(); return jrng;
-}
-
-
-constexpr void
-X128PP::jump () noexcept
+constexpr void X128PP::jump () noexcept
 {
     decltype(state) jbuf {};
 
@@ -128,10 +120,10 @@ X128PP::jump () noexcept
 
     for (auto j : jtab)
     {
-        for (int b = 0; b < (32); operator () (), b++)
+        for (int b = 0; b < 32; operator () (), b++)
         {
             if (j & (UINT32_C(1) << b))
-                for (unsigned int i = 0; i < jbuf.size(); i++)
+                for (unsigned i = 0; i < jbuf.size(); i++)
                     jbuf[i] ^= state[i];
         }
     }
@@ -140,15 +132,7 @@ X128PP::jump () noexcept
 }
 
 
-constexpr auto
-long_jump (const X128PP & prng) noexcept
-{
-    auto jrng {prng}; jrng.long_jump(); return jrng;
-}
-
-
-constexpr void
-X128PP::long_jump () noexcept
+constexpr void X128PP::long_jump () noexcept
 {
     decltype(state) jbuf {};
 
@@ -157,10 +141,10 @@ X128PP::long_jump () noexcept
 
     for (auto j : jtab)
     {
-        for (int b = 0; b < (32); operator () (), b++)
+        for (int b = 0; b < 32; operator () (), b++)
         {
             if (j & (UINT32_C(1) << b))
-                for (unsigned int i = 0; i < jbuf.size(); i++)
+                for (unsigned i = 0; i < jbuf.size(); i++)
                     jbuf[i] ^= state[i];
         }
     }
