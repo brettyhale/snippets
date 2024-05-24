@@ -53,7 +53,7 @@ public:
 
     // xoshiro256++ generator function:
 
-    result_type operator () () noexcept {
+    constexpr result_type operator () () noexcept {
         auto r = rol(state[0] + state[3], (23)) + state[0];
         auto t = clamp(state[1] << (17));
         state[2] ^= state[0], state[3] ^= state[1];
